@@ -77,6 +77,10 @@
     const API_KEY = "9b47ba3c8bafd7784842b8e81d222b3e";
     const iframe = document.getElementById("videoFrame");
 
+    // Prioritize subtitles in order: Bosnian > Croatian > Serbian
+    const subtitleLangs = ['bs', 'hr', 'sr'];
+    const subtitleParam = subtitleLangs.map(lang => `subtitles=${lang}`).join('&');
+
     async function fetchAndDisplay(sectionId, url, type) {
       const res = await fetch(url);
       const data = await res.json();
@@ -94,8 +98,8 @@
           const id = item.id;
           const isTV = type === 'tv';
           const src = isTV
-            ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true`
-            : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085`;
+            ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true&${subtitleParam}`
+            : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085&${subtitleParam}`;
           iframe.src = src;
           window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         };
