@@ -45,11 +45,12 @@
       font-size: 0.9rem;
       font-weight: bold;
     }
-    iframe {
+    iframe, video {
       margin-top: 2rem;
       width: 100%;
       height: 500px;
       border: none;
+      background: black;
     }
     #searchBar {
       margin: 1rem 0;
@@ -102,13 +103,12 @@
     <div class="movie-grid" id="searchResults"></div>
   </div>
 
-  <iframe id="videoFrame" allowfullscreen allow="encrypted-media"></iframe>
+  <video id="videoPlayer" controls></video>
 
   <script>
     const API_KEY = "9b47ba3c8bafd7784842b8e81d222b3e";
-    const iframe = document.getElementById("videoFrame");
-    const subtitleLangs = ['bs', 'hr', 'sr'];
-    const subtitleParam = subtitleLangs.map(lang => `subtitles=${lang}`).join('&');
+    const RAPIDAPI_KEY = "0db93de2cfmsh8fb6bd1633f5ee8p161543jsn3f976abd1cfb";
+    const videoPlayer = document.getElementById("videoPlayer");
 
     async function fetchAndDisplay(sectionId, url, type) {
       const res = await fetch(url);
@@ -123,17 +123,38 @@
           <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" alt="${item.title || item.name}" />
           <div class="rating">${item.vote_average.toFixed(1)}</div>
         `;
-        card.onclick = () => {
-          const id = item.id;
-          const isTV = type === 'tv';
-          const src = isTV
-            ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true&${subtitleParam}`
-            : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085&${subtitleParam}`;
-          iframe.src = src;
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        };
+        card.onclick = () => playStream(type, item.id);
         container.appendChild(card);
       });
+    }
+
+    async function playStream(type, id) {
+      const body = {
+        type: type,
+        tmdb_id: id.toString(),
+        season_number: "1",
+        episode_number: "1"
+      };
+
+      const res = await fetch("https://movie-tv-show-video-fetcher.p.rapidapi.com/api.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-rapidapi-host": "movie-tv-show-video-fetcher.p.rapidapi.com",
+          "x-rapidapi-key": RAPIDAPI_KEY
+        },
+        body: JSON.stringify(body)
+      });
+
+      const result = await res.json();
+      if (result && result.stream_url) {
+        videoPlayer.src = result.stream_url;
+        videoPlayer.load();
+        videoPlayer.play();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      } else {
+        alert("Stream not found.");
+      }
     }
 
     document.getElementById("searchButton").addEventListener("click", async () => {
@@ -152,14 +173,7 @@
             <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" alt="${item.title || item.name}" />
             <div class="rating">${(item.vote_average || 0).toFixed(1)}</div>
           `;
-          card.onclick = () => {
-            const id = item.id;
-            const src = item.media_type === 'tv'
-              ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true&${subtitleParam}`
-              : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085&${subtitleParam}`;
-            iframe.src = src;
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-          };
+          card.onclick = () => playStream(item.media_type, item.id);
           container.appendChild(card);
         }
       });
