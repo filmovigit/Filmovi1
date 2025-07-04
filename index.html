@@ -29,6 +29,14 @@
       overflow: hidden;
       background: #111;
       cursor: pointer;
+      min-height: 240px;
+      font-size: 1.2rem;
+      outline: none;
+    }
+    .movie-card:focus {
+      box-shadow: 0 0 0 4px #16a085;
+      border: 2px solid #16a085;
+      z-index: 2;
     }
     .movie-card img {
       width: 100%;
@@ -72,6 +80,15 @@
       border: none;
       cursor: pointer;
     }
+    #videoFrame {
+      background: #000;
+    }
+    #loadingIndicator {
+      display: none;
+      text-align: center;
+      font-size: 1.5rem;
+      margin: 2rem 0;
+    }
   </style>
 </head>
 <body>
@@ -102,11 +119,13 @@
     <div class="movie-grid" id="searchResults"></div>
   </div>
 
+  <div id="loadingIndicator">Loading video...</div>
   <iframe id="videoFrame" allowfullscreen allow="encrypted-media"></iframe>
 
   <script>
     const API_KEY = "9b47ba3c8bafd7784842b8e81d222b3e";
     const iframe = document.getElementById("videoFrame");
+    const loading = document.getElementById("loadingIndicator");
     const subtitleLangs = ['bs', 'hr', 'sr'];
     const subtitleParam = subtitleLangs.map(lang => `subtitles=${lang}`).join('&');
 
@@ -119,6 +138,7 @@
       data.results.forEach(item => {
         const card = document.createElement("div");
         card.className = "movie-card";
+        card.tabIndex = 0;
         card.innerHTML = `
           <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" alt="${item.title || item.name}" />
           <div class="rating">${item.vote_average.toFixed(1)}</div>
@@ -129,11 +149,29 @@
           const src = isTV
             ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true&${subtitleParam}`
             : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085&${subtitleParam}`;
-          iframe.src = src;
+          setIframeSrc(src);
           window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        };
+        card.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            card.click();
+          }
         };
         container.appendChild(card);
       });
+    }
+
+    function setIframeSrc(src) {
+      loading.style.display = "block";
+      iframe.style.display = "none";
+      iframe.src = ""; // Clear first for reliability
+      setTimeout(() => {
+        iframe.src = src;
+      }, 100); // Small delay to force reload
+      iframe.onload = () => {
+        loading.style.display = "none";
+        iframe.style.display = "block";
+      };
     }
 
     document.getElementById("searchButton").addEventListener("click", async () => {
@@ -148,6 +186,7 @@
         if (item.media_type === 'movie' || item.media_type === 'tv') {
           const card = document.createElement("div");
           card.className = "movie-card";
+          card.tabIndex = 0;
           card.innerHTML = `
             <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" alt="${item.title || item.name}" />
             <div class="rating">${(item.vote_average || 0).toFixed(1)}</div>
@@ -157,8 +196,13 @@
             const src = item.media_type === 'tv'
               ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true&${subtitleParam}`
               : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085&${subtitleParam}`;
-            iframe.src = src;
+            setIframeSrc(src);
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          };
+          card.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              card.click();
+            }
           };
           container.appendChild(card);
         }
