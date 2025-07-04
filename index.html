@@ -51,10 +51,36 @@
       height: 500px;
       border: none;
     }
+    #searchBar {
+      margin: 1rem 0;
+      display: flex;
+      gap: 0.5rem;
+    }
+    #searchInput {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+    }
+    #searchButton {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      background-color: #16a085;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <h1>📺 Streaming Hub</h1>
+
+  <div id="searchBar">
+    <input type="text" id="searchInput" placeholder="Search movies or TV shows...">
+    <button id="searchButton">Search</button>
+  </div>
 
   <div class="section">
     <h2>🎬 Now Playing (Movies)</h2>
@@ -71,13 +97,16 @@
     <div class="movie-grid" id="trendingTV"></div>
   </div>
 
+  <div class="section">
+    <h2>🔍 Search Results</h2>
+    <div class="movie-grid" id="searchResults"></div>
+  </div>
+
   <iframe id="videoFrame" allowfullscreen allow="encrypted-media"></iframe>
 
   <script>
-    const API_KEY = "9b47ba3c8bafd7784842b8e81d222b3e";
+    const API_KEY = "YOUR_TMDB_API_KEY";
     const iframe = document.getElementById("videoFrame");
-
-    // Prioritize subtitles in order: Bosnian > Croatian > Serbian
     const subtitleLangs = ['bs', 'hr', 'sr'];
     const subtitleParam = subtitleLangs.map(lang => `subtitles=${lang}`).join('&');
 
@@ -106,6 +135,35 @@
         container.appendChild(card);
       });
     }
+
+    document.getElementById("searchButton").addEventListener("click", async () => {
+      const query = document.getElementById("searchInput").value.trim();
+      if (!query) return;
+      const url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const container = document.getElementById("searchResults");
+      container.innerHTML = "";
+      data.results.forEach(item => {
+        if (item.media_type === 'movie' || item.media_type === 'tv') {
+          const card = document.createElement("div");
+          card.className = "movie-card";
+          card.innerHTML = `
+            <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" alt="${item.title || item.name}" />
+            <div class="rating">${(item.vote_average || 0).toFixed(1)}</div>
+          `;
+          card.onclick = () => {
+            const id = item.id;
+            const src = item.media_type === 'tv'
+              ? `https://vidfast.pro/tv/${id}/1/1?autoPlay=true&theme=16A085&nextButton=true&autoNext=true&${subtitleParam}`
+              : `https://vidfast.pro/movie/${id}?autoPlay=true&theme=16A085&${subtitleParam}`;
+            iframe.src = src;
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          };
+          container.appendChild(card);
+        }
+      });
+    });
 
     fetchAndDisplay("nowPlayingMovies", `https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`, 'movie');
     fetchAndDisplay("trendingMovies", `https://api.themoviedb.org/3/trending/movie/day?api_key=${API_KEY}`, 'movie');
